@@ -1,0 +1,4 @@
+#!/bin/bash
+# A commonly script that aggregates the tool variables and run the objcopy
+# command targeting at specific machine.
+"`gmsys-machprefix`objcopy" $@

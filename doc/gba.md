@@ -14,17 +14,15 @@ One could be familiar with the `vcvarsall` if he is a windows developer.
 Such command will be executed to setup the path for include directories,
 archive directories and tools' path.
 
-For the `libgmsys`, there's a similar script file named `gbaenv.src` under 
-the `tool` directory. But one should not directly execute such file as
-the variables setup in the script will lost soon after it completes its
-execution. The correct usage for such script is:
+For the `libgmsys`, there's a similar script file named `gbaenv.sh` under 
+the `tool` directory. You could run it by (`/path/to` is the path to the 
+tool folder):
 
-    source /path/to/gbaenv.src
+    /path/to/gbaenv.sh
 	
-The validate whether the environments are setup properly, one could type
-`alias` command and he will see a series of commands prefixed with `gmsys`.
-And try to execute some of these command like `gmsys-gcc`, he will get 
-a message like (I use `arm-none-eabi` as the cross compiling platform):
+After entering the shell, one could try to execute some of these command like 
+`gmsys-gcc`, he will get a message like (I use `arm-none-eabi` as the cross 
+compiling platform):
 
     arm-none-eabi-gcc: fatal error: no input files
     compilation terminated.

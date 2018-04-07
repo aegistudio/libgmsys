@@ -1,0 +1,5 @@
+# !/bin/bash
+# The include and library flag for the libgmsys toolchain.
+GMSYS_ROOT=`gmsys-root`
+echo "-I $GMSYS_ROOT/include -L $GMSYS_ROOT/bin"
+exit 0

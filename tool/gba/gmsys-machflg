@@ -1,0 +1,5 @@
+# !/bin/bash
+# Retrieve the cpu flavour and architecture flavour while using with the 
+# gmsys-*'s compiling commands.
+echo "-mcpu=arm7tdmi -march=armv4t"
+exit 0

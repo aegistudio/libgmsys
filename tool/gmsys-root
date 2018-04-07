@@ -1,0 +1,7 @@
+# !/bin/bash
+# Simply retrieve the root directory of the libgmsys.
+SCRIPT_PATH=`realpath $0`
+SCRIPT_ROOT=`dirname $SCRIPT_PATH`
+GMSYS_ROOT="$SCRIPT_ROOT/.."
+echo `realpath $GMSYS_ROOT`
+exit 0

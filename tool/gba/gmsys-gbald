@@ -1,0 +1,5 @@
+# !/bin/bash
+# The special linking command that takes into the tool/gba.lds and the 
+# bin/gbacrt0.o into linking stage and will produces the final elf file.
+GMSYS_ROOT=`gmsys-root`
+gmsys-ld -T "$GMSYS_ROOT/tool/gba/gba.lds" "$GMSYS_ROOT/bin/gbacrt0.o" $@

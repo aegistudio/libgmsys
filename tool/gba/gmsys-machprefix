@@ -1,0 +1,3 @@
+# !/bin/bash
+# Rewind the result of the ARM processor's prefix.
+gmsys-armprefix

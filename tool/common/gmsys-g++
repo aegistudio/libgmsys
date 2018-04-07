@@ -1,0 +1,4 @@
+#!/bin/bash
+# A commonly script that aggregates the tool variables and run the g++
+# command targeting at specific machine.
+"`gmsys-machprefix`g++" `gmsys-incldflg` `gmsys-machflg` "-std=c++11" $@

@@ -1,0 +1,7 @@
+# !/bin/bash
+# Retrieve the prefix of the ARM prefix which is available under the
+# operating system. The default value for this result is arm-none-eabi-,
+# you could modify it on your own.
+# Please notice the dash after the string is indispensible.
+echo "arm-none-eabi-"
+exit 0
