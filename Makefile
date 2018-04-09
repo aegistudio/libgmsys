@@ -23,16 +23,23 @@ MACH_CPP=gmsys-g++
 MACH_CC=gmsys-gcc
 MACH_LD=gmsys-ld
 MACH_AS=gmsys-as
+MACH_AR=gmsys-ar
 
 # The target for building library and tool chain for GBA 
 # (GameBoy Advanced).
-gba: bin/gmsys-gbacartridge bin/gbacrt0.o
-
-bin/gmsys-gbacartridge: 
+gba: bin/gbacrt0.o bin/gba.a
 
 # The stub ROM header for GBA cartridge.
 bin/gbacrt0.o: src/gbacrt0.S
 	$(MACH_AS) $< -o $@
+
+# The object files in GBA cartridges.
+bin/bios_gba.o: src/bios_gba.c
+	$(MACH_CC) -O3 -c $< -o $@
+
+# The compiled library in GBA flavour.
+bin/gba.a: bin/bios_gba.o
+	$(MACH_AR) -rcs $@ $<
 
 clean:
 	rm bin/*

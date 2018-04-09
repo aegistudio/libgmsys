@@ -28,6 +28,7 @@ SECTIONS
 
 		/** The interrupt mapped memory */
 		__gba_interrupt_handler = 0x03007ffc;
+		__gba_interrupt_check   = 0x03007ff8;
 		__gba_interrupt_master  = 0x04000208;
 		__gba_interrupt_enabled = 0x04000200;
 		__gba_interrupt_flag    = 0x04000202;

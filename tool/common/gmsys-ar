@@ -1,0 +1,4 @@
+#!/bin/bash
+# A commonly script that aggregates the tool variables and run the ld
+# command targeting at specific machine.
+"`gmsys-machprefix`ar" $@

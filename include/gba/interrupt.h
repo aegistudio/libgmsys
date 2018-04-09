@@ -94,6 +94,14 @@ extern volatile __gba_interrupt_t __gba_interrupt_enabled;
 extern volatile __gba_interrupt_t __gba_interrupt_flag;
 
 /**
+ * For the case of IntrWait and VBlankIntrWait bios function, the 
+ * user should also set bits for the checking register. See the 
+ * IntrWait and VBlankIntrWait function in GBATEK:
+ * http://problemkaputt.de/gbatek.htm#bioshaltfunctions
+ */
+extern volatile __gba_interrupt_t __gba_interrupt_check;
+
+/**
  * The function pointer to the user's interrupt handler. You could
  * change this value at bootstrap to register your handler.
  * The handler is entered under ARM mode and you should switch to
