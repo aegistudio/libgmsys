@@ -48,40 +48,41 @@ typedef union {
 	struct {
 		// Interrupted when the scanline just come into 
 		// the vertical blank region.
-		unsigned short vblank 	: 1;
+		unsigned short vblank   : 1;
 		
 		// Interrupted when the scanline just come into
 		// the horizontal blank region.
-		unsigned short hblank 	: 1;
+		unsigned short hblank   : 1;
 		
 		// Interrupted when the scanline counter matches
 		// the number set to interrupt.
-		unsigned short vcounter	: 1;
+		unsigned short vcounter : 1;
 		
 		// Interrupted when specific timer overflow.
-		unsigned short timer0	: 1;
-		unsigned short timer1	: 1;
-		unsigned short timer2	: 1;
-		unsigned short timer3	: 1;
+		unsigned short timer0   : 1;
+		unsigned short timer1   : 1;
+		unsigned short timer2   : 1;
+		unsigned short timer3   : 1;
 		
 		// Interrupted when the serial communication generates
 		// an interrupt signal.
-		unsigned short serial	: 1;
+		unsigned short serial   : 1;
 		
 		// Interrupted when DMA transfer is finished.
-		unsigned short dma0		: 1;
-		unsigned short dma1		: 1;
-		unsigned short dma2		: 1;
-		unsigned short dma3		: 1;
+		unsigned short dma0     : 1;
+		unsigned short dma1     : 1;
+		unsigned short dma2     : 1;
+		unsigned short dma3     : 1;
 		
 		// Interrupted when the keypad is pressed.
-		unsigned short keypad	: 1;
+		unsigned short keypad   : 1;
 		
 		// Interrupted when the gamepak or external source 
 		// generate such interrupt.
-		unsigned short gamepak	: 1;
-	} source;
+		unsigned short gamepak  : 1;
+	} bits;
 	unsigned short mask : 14;
+	unsigned short halfword;
 } __gba_interrupt_t;
 
 /**

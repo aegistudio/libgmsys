@@ -47,18 +47,19 @@ enum __gba_keypad_mask_t {
  */
 typedef union {
 	struct {
-		unsigned short a 		: 1;	// Button A
-		unsigned short b 		: 1;	// Button B
-		unsigned short select	: 1;	// Select
-		unsigned short start	: 1;	// Start
-		unsigned short right	: 1;	// Right
-		unsigned short left		: 1;	// Left
-		unsigned short up		: 1;	// Up
-		unsigned short down		: 1;	// Down
-		unsigned short r		: 1;	// Button R
-		unsigned short l		: 1;	// Button L
-	} button;
+		unsigned short a      : 1;	// Button A
+		unsigned short b      : 1;	// Button B
+		unsigned short select : 1;	// Select
+		unsigned short start  : 1;	// Start
+		unsigned short right  : 1;	// Right
+		unsigned short left   : 1;	// Left
+		unsigned short up     : 1;	// Up
+		unsigned short down   : 1;	// Down
+		unsigned short r      : 1;	// Button R
+		unsigned short l      : 1;	// Button L
+	} bits;
 	unsigned short mask : 10;
+	unsigned short halfword;
 } __gba_keypad_t;
 
 /**
@@ -66,19 +67,22 @@ typedef union {
  * register. The lower bits stores the keypad mask and 
  * the higher bit stores the interrupt control bits.
  */
-typedef struct {
-	// The bits indicating the button that is clicked.
-	unsigned short buttons			: 10;
-	
-	// These bits are remained zero and will not be used.
-	unsigned short unused			: 4;
-	
-	// 0 = Disabled, 1 = Enabled
-	unsigned short irq_enabled		: 1;
-	
-	// 0 = Triggered when one button is clicked.
-	// 1 = Triggered when all button masked is clicked.
-	unsigned short irq_condition	: 1;
+typedef union {
+	struct {
+		// The bits indicating the button that is clicked.
+		unsigned short buttons       : 10;
+		
+		// These bits are remained zero and will not be used.
+		unsigned short unused        : 4;
+		
+		// 0 = Disabled, 1 = Enabled
+		unsigned short irq_enabled   : 1;
+		
+		// 0 = Triggered when one button is clicked.
+		// 1 = Triggered when all button masked is clicked.
+		unsigned short irq_condition : 1;
+	} bits;
+	unsigned short halfword;
 } __gba_keypad_intr_t;
 
 /**

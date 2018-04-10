@@ -48,6 +48,12 @@ void __bios_arm_cpufastset(
 void __bios_arm_cpufastfill(void* destinationAddress, 
 	int word, unsigned int numWords);
 
+/**
+ * Utilize the fast-set function to copy words.
+ */
+void __bios_arm_cpufastcopy(void* destinationAddress,
+	void* sourceAddress, unsigned int numWords);
+
 #endif
 
 // End of avoid name mangling in C++.

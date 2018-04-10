@@ -48,4 +48,12 @@ void __bios_arm_cpufastfill(
 		numWords | (1 << 24));
 }
 
+// Implementation for function cpufastfill.
+void __bios_arm_cpufastcopy(
+	void* destinationAddress, void* sourceAddress, 
+	unsigned int numWords) {
+
+	__bios_arm_cpufastset(sourceAddress,
+		destinationAddress, numWords);
+}
 #endif
