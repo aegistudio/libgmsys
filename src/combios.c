@@ -12,22 +12,11 @@
 #define __swi(mac) "swi " __tostring(mac) ";"
 
 #ifdef __bios_arm_svcid_cpufastset
-// Implementation for BIOS function cpuFastSet.
-void __bios_arm_cpufastset(
-	void* sourceAddress,
-	void* destinationAddress,
-	int wordAmountMode) {
 
-	asm volatile (
-		"ldr r0, %0;"
-		"ldr r1, %1;"
-		"ldr r2, %2;"
+// Implementation for BIOS function cpuFastSet.
+asm (	"__bios_arm_cpufastset:"
 		__swi(__bios_arm_svcid_cpufastset)
-	: :	"m"(sourceAddress),
-		"m"(destinationAddress),
-		"m"(wordAmountMode)
-	:	"r0", "r1", "r2");
-}
+		"bx	lr");
 
 // Implementation for function cpufastfill.
 void __bios_arm_cpufastfill(
