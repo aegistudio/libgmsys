@@ -27,11 +27,15 @@ MACH_AR=gmsys-ar
 
 # The target for building library and tool chain for GBA 
 # (GameBoy Advanced).
-gba: bin/gbacrt0.o bin/gba.a
+gba: bin/gbacrt0.o bin/gba.a bin/gmsys-gbarom
 
 # The stub ROM header for GBA cartridge.
 bin/gbacrt0.o: src/gbacrt0.S
 	$(MACH_AS) $< -o $@
+
+# The special ROM loader for GBA. The BFD library is used.
+bin/gmsys-gbarom: src/romld_gba.cpp
+	$(NATIVE_CPP) -O3 $< -o $@ -lbfd -std=c++11
 
 # The object files in GBA cartridges.
 bin/bios_gba.o: src/bios_gba.c

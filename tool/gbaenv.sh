@@ -11,6 +11,7 @@ TOOL_ROOT=`realpath $TOOL_ROOT`
 
 # Add essential script directories to the path. 
 export PATH=$PATH:"$TOOL_ROOT"
+export PATH=$PATH:"$TOOL_ROOT/../bin"
 export PATH=$PATH:"$TOOL_ROOT/gba"
 export PATH=$PATH:"$TOOL_ROOT/common"
 
