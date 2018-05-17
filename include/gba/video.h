@@ -27,35 +27,35 @@ typedef union {
 	// Accessing the register as bit fields.
 	struct {
 		// The BG mode of the video (0 to 5). 
-		unsigned short mode            : 3;
+		unsigned short mode             : 3;
 
 		// The CGB mode (could only set by bios opcodes).
-		unsigned short cgb             : 1;
+		unsigned short cgb              : 1;
 
 		// The current displaying frame (0 or 1).
-		unsigned short frame           : 1;
+		unsigned short frame            : 1;
 
 		// Allow access to OAM while H-Blank.
-		unsigned short hblank_oamccess : 1;
+		unsigned short hblank_oamaccess : 1;
 
 		// Object character mapping mode (0 for two
 		// dimensional, and 1 for one dimensional).
-		unsigned short obj_mapmode     : 1;
+		unsigned short obj_mapmode      : 1;
 
 		// Allow fast access to VRAM, palatte and OAM.
-		unsigned short forced_blank    : 1;
+		unsigned short forced_blank     : 1;
 
 		// Whether corresponding BG display is visible.
-		unsigned short bg0_visible     : 1;
-		unsigned short bg1_visible     : 1;
-		unsigned short bg2_visible     : 1;
-		unsigned short bg3_visible     : 1;
-		unsigned short obj_visible     : 1;
+		unsigned short bg0_visible      : 1;
+		unsigned short bg1_visible      : 1;
+		unsigned short bg2_visible      : 1;
+		unsigned short bg3_visible      : 1;
+		unsigned short obj_visible      : 1;
 
 		// The display flags for windows.
-		unsigned short win0_display    : 1;
-		unsigned short win1_display    : 1;
-		unsigned short obj_display     : 1;
+		unsigned short win0_display     : 1;
+		unsigned short win1_display     : 1;
+		unsigned short obj_display      : 1;
 	} bits;
 
 	// Accessing the register as half word.
@@ -89,6 +89,7 @@ typedef union {
 // The register locations for video registers.
 extern volatile __gba_video_control_t __gba_video_control;
 extern volatile __gba_video_status_t __gba_video_status;
+extern volatile unsigned short __gba_video_vcounter;
 
 // End of avoid name mangling when compiled in C++ source.
 #ifdef __cplusplus

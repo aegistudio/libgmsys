@@ -105,9 +105,15 @@ void appendLoadableSections(bfd* fd, Buffer& outputBuffer,
 	writeWord(outputBuffer, wramAddress.offset, bufferVma + bufferSize);
 
 	// Find out the number of bytes to write, and allocate space.
-	int wramAllocSize = 0;
-	if(wramText != NULL) wramAllocSize += wramText -> size;
-	if(wramData != NULL) wramAllocSize += wramData -> size;
+	int wramAllocSize = 0, wramTextSize = 0, wramDataSize = 0;
+	if(wramText != NULL) {
+		wramTextSize = ((wramText -> size + 3) | 3) - 3;
+		wramAllocSize += wramTextSize;
+	}
+	if(wramData != NULL) {
+		wramDataSize = ((wramData -> size + 3) | 3) - 3;
+		wramAllocSize += wramDataSize;
+	}
 	allocateMore(outputBuffer, wramAllocSize);
 	wramAllocSize = outputBuffer.size() - bufferSize;
 
@@ -125,12 +131,12 @@ void appendLoadableSections(bfd* fd, Buffer& outputBuffer,
 	if(wramText != NULL) {
 		bfd_get_section_contents(fd, wramText, 
 			&outputBuffer[pointer], 0, wramText -> size);
-		pointer += wramText -> size;
+		pointer += wramTextSize;
 	}
 	if(wramData != NULL) {
 		bfd_get_section_contents(fd, wramData, 
 			&outputBuffer[pointer], 0, wramData -> size);
-		pointer += wramData -> size;
+		pointer += wramDataSize;
 	}
 };
 
@@ -154,10 +160,10 @@ int main(int argc, char** argv) {
 	// Retrieve potential sections from the file, and ensure that
 	// the file could be exported correctly.
 	asection* rom = bfd_get_section_by_name(elffd, ".rom");
-	asection* wramSlowText = bfd_get_section_by_name(elffd, ".wram.text");
-	asection* wramSlowData = bfd_get_section_by_name(elffd, ".wram.data");
-	asection* wramFastText = bfd_get_section_by_name(elffd, ".fastwram.text");
-	asection* wramFastData = bfd_get_section_by_name(elffd, ".fastwram.data");
+	asection* ewramText = bfd_get_section_by_name(elffd, ".ewram.text");
+	asection* ewramData = bfd_get_section_by_name(elffd, ".ewram.data");
+	asection* iwramText = bfd_get_section_by_name(elffd, ".iwram.text");
+	asection* iwramData = bfd_get_section_by_name(elffd, ".iwram.data");
 
 	// Ensure the file has a .rom section with updatable symbols.
 	// And copy the data from the text to the output buffer.
@@ -170,14 +176,14 @@ int main(int argc, char** argv) {
 	// Initialize symbol processors, these processors will be used after
 	// processing of symbol  table.
 	std::map<std::string, BfdSymbolConsumer*> symbolProcessors;
-	BfdOffsetConsumer wramSlowAddress(rom);
-	symbolProcessors["__gba_slowwram_address"] = &wramSlowAddress;
-	BfdOffsetConsumer wramFastAddress(rom);
-	symbolProcessors["__gba_fastwram_address"] = &wramFastAddress;
-	BfdOffsetConsumer wramSlowSize(rom);
-	symbolProcessors["__gba_slowwram_size"] = &wramSlowSize;
-	BfdOffsetConsumer wramFastSize(rom);
-	symbolProcessors["__gba_fastwram_size"] = &wramFastSize;
+	BfdOffsetConsumer ewramAddress(rom);
+	symbolProcessors["__gba_ewram_address"] = &ewramAddress;
+	BfdOffsetConsumer iwramAddress(rom);
+	symbolProcessors["__gba_iwram_address"] = &iwramAddress;
+	BfdOffsetConsumer ewramSize(rom);
+	symbolProcessors["__gba_ewram_size"] = &ewramSize;
+	BfdOffsetConsumer iwramSize(rom);
+	symbolProcessors["__gba_iwram_size"] = &iwramSize;
 
 	// Retrieve the symbol table from the ELF file.
 	size_t numSymbolAlloc = bfd_get_symtab_upper_bound(elffd) / sizeof(asymbol*);
@@ -192,19 +198,19 @@ int main(int argc, char** argv) {
 	}
 	
 	// Ensure the desired uploading symbols are in the .rom section.
-	if(	wramSlowAddress.offset == 0 || wramFastAddress.offset == 0 ||
-		wramSlowSize.offset == 0    || wramFastSize.offset == 0) 
+	if(	ewramAddress.offset == 0 || iwramAddress.offset == 0 ||
+		ewramSize.offset == 0    || iwramSize.offset == 0) 
 		errorUsage(ecDisqualified, "Targeting file should have __gba_"
-			"{slow,fast}wram_{address,size} to fill-in initialization "
+			"{e,i}wram_{address,size} to fill-in initialization "
 			"information.", eDisqualified);
 
-	// Attempt to write out the slow wram and fast wram data.
+	// Attempt to write out the external wram and internal wram data.
 	// The loadable size of fast wram should be 0x080000, however they should
 	// not occupy all space in fast wram the stack uses this space.
-	appendLoadableSections(elffd, romBuffer, wramSlowAddress, wramSlowSize,
-		wramSlowText, wramSlowData, rom -> vma, 0x040000);
-	appendLoadableSections(elffd, romBuffer, wramFastAddress, wramFastSize,
-		wramFastText, wramFastData, rom -> vma, 0x008000);
+	appendLoadableSections(elffd, romBuffer, ewramAddress, ewramSize,
+		ewramText, ewramData, rom -> vma, 0x040000);
+	appendLoadableSections(elffd, romBuffer, iwramAddress, iwramSize,
+		iwramText, iwramData, rom -> vma, 0x008000);
 
 	// Attempt to create an output file to store the extracted ROM data.
 	FILE* romfd = fopen(romFileName.c_str(), "wb");

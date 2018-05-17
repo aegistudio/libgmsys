@@ -22,24 +22,26 @@ SECTIONS
 		*(.rodata.*)
 	}
 
-	/** Sections that should be loaded on the slow wram. */
-	.wram.text ABSOLUTE(0x02000000) : {
-		*(.wram.text)
+	/** Sections that should be loaded on the external wram. */
+	.ewram.text ABSOLUTE(0x02000000) : {
+		*(.ewram.text)
 	}
-	.wram.data ABSOLUTE(0x02000000 + SIZEOF(.wram.text)) : {
+	__gba_ewram_text_size = ((SIZEOF(.ewram.text) + 3) | 3) - 3;
+	.ewram.data ABSOLUTE(0x02000000 + __gba_ewram_text_size) : {
 		*(.data)
 		*(.data.*)
-		*(.wram.data)
+		*(.ewram.data)
 		*(.bss)
 		*(.bss.*)
 	}
 
-	/** Sections that should be loaded on the fast wram. */
-	.fastwram.text ABSOLUTE(0x03000000) : {
-		*(.fastwram.text)
+	/** Sections that should be loaded on the internal wram. */
+	.iwram.text ABSOLUTE(0x03000000) : {
+		*(.iwram.text)
 	}
-	.fastwram.data ABSOLUTE(0x03000000 + SIZEOF(.wram.text)): {
-		*(.fastwram.data)
+	__gba_iwram_text_size = ((SIZEOF(.iwram.text) + 3) | 3) - 3;
+	.iwram.data ABSOLUTE(0x03000000 + __gba_iwram_text_size): {
+		*(.iwram.data)
 	}
 
 	/** Section of GBA internal memory / symbols. */
@@ -58,6 +60,10 @@ SECTIONS
 		/** The video control mapped memory. */
 		__gba_video_control	= 0x04000000;
 		__gba_video_status      = 0x04000004;
+		__gba_video_vcounter    = 0x04000006;
+
+		/** The sprite control mapped memory. */
+		__gba_sprite_attributes = 0x07000000;
 	}
 
 	/** Section that would be discarded on linking. */

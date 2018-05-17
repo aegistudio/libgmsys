@@ -12,10 +12,10 @@
 .global __gba_gpio_control
 
 # The hard-coded data used to control wram and fast wram upload.
-.global __gba_slowwram_address
-.global __gba_slowwram_size
-.global __gba_fastwram_address
-.global __gba_fastwram_size
+.global __gba_ewram_address
+.global __gba_ewram_size
+.global __gba_iwram_address
+.global __gba_iwram_size
 
 __gba_rom_start:
 	# The cartridge header which will be loaded in the 
@@ -41,42 +41,42 @@ __gba_gpio_control:
 
 	# The hardcoded variables that should be replaced with
 	# the rom making command.
-__gba_slowwram_address:
+__gba_ewram_address:
 	.word           0
-__gba_slowwram_size:
+__gba_ewram_size:
 	.word           0
-__gba_fastwram_address:
+__gba_iwram_address:
 	.word           0
-__gba_fastwram_size:
+__gba_iwram_size:
 	.word           0
 
 	# The address skipping the headers, GPIO ports and hard
 	# coded program uploading code.
 __gba_rom_hdrbody:
 
-	# Upload the code to slow wram if required.
-__gba_slowwram_upload:
-	ldr             r2, =__gba_slowwram_size
+	# Upload the code and data to external wram if required.
+__gba_ewram_upload:
+	ldr             r2, =__gba_ewram_size
 	ldr             r2, [r2]
 	cmp             r2, #0
-	beq             __gba_slowwram_upload_end
+	beq             __gba_ewram_upload_end
 	ldr             r1, =0x02000000
-	ldr             r0, =__gba_slowwram_address
+	ldr             r0, =__gba_ewram_address
 	ldr             r0, [r0]
 	swi             0x0C0000
-__gba_slowwram_upload_end:
+__gba_ewram_upload_end:
 
-	# Upload the code to fast wram if required.
-__gba_fastwram_upload:
-	ldr             r2, =__gba_fastwram_size
+	# Upload the code and data to internal wram if required.
+__gba_iwram_upload:
+	ldr             r2, =__gba_iwram_size
 	ldr             r2, [r2]
 	cmp             r2, #0
-	beq             __gba_fastwram_upload_end
+	beq             __gba_iwram_upload_end
 	ldr             r1, =0x03000000
-	ldr             r0, =__gba_fastwram_address
+	ldr             r0, =__gba_iwram_address
 	ldr             r0, [r0]
 	swi             0x0C0000
-__gba_fastwram_upload_end:
+__gba_iwram_upload_end:
 
 __gba_rom_invokemain:
 	# Will directly invoke the main function after skipping 
