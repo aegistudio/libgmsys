@@ -158,7 +158,7 @@ struct GmOsFineAllocatorDlMalloc {
 			
 		/// Estimate the size of a chunk.
 		static inline chunkSizeType physicalSize(chunkSizeType sz) noexcept
-			{ return sz + (sizeof(chunkSizeType) << 1); }
+			{ return sz + payloadOffset; }
 		
 		/// Retrieve the physical size of current chunk.
 		inline chunkSizeType physicalSize() const noexcept
@@ -549,7 +549,7 @@ struct GmOsFineAllocatorDlMalloc {
 			
 			// Initialize page chunk header now.
 			chunkType chunk = reinterpret_cast<chunkType>(page);
-			chunk -> updateSize(orderSize);
+			chunk -> updateSize(orderSize << 2);
 			chunk -> setFlag(GmOsFineChunkDlMalloc::bitPageAllocated);
 			return chunk -> payload.memory;
 		}
@@ -699,7 +699,7 @@ struct GmOsFineAllocatorDlMalloc {
 		
 		/// Return the chunk in page back to the allocator.
 		if(chunk -> isPageAllocated()) {
-			orderType pageOrder = chunk -> size();
+			orderType pageOrder = (chunk -> size()) >> 2;
 			pageAllocator.freeHighPage(reinterpret_cast<pageType>(chunk), pageOrder);
 		}
 		else {
