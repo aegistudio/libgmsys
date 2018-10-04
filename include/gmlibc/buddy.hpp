@@ -82,18 +82,21 @@ struct GmOsPageAllocatorBuddy {
 	static_assert(sizeof(GmOsPageBuddy) == 1 << buddyInfo::pageSizeShift,
 			"Invalid page size shift was given.");
 	
+	/// Forward the definition of the page type.
+	typedef GmOsPageBuddy* pageType;
+	
 	/// Calculate the page frame number of a page. Please notice the page counting is 
 	/// reversed, which means the page at the start is totalPageFrame - 1, and the 
 	/// page at the end is 0.
-	static pfnType pageFrameFor(const GmOsPageBuddy* page) noexcept {
+	static pfnType pageFrameFor(const pageType page) noexcept {
 		pfnType reversePageFrame = (reinterpret_cast<addressType>(page) 
 				- buddyInfo::firstPageAddress) >> buddyInfo::pageSizeShift;
 		return buddyInfo::totalPageFrame - 1 - reversePageFrame;
 	}
 	
 	/// Calculate the page address from a frame.
-	static GmOsPageBuddy* pageFrameFrom(pfnType pfn) noexcept {
-		return reinterpret_cast<GmOsPageBuddy*>(((buddyInfo::totalPageFrame 
+	static pageType pageFrameFrom(pfnType pfn) noexcept {
+		return reinterpret_cast<pageType>(((buddyInfo::totalPageFrame 
 				- 1 - pfn) << buddyInfo::pageSizeShift) + buddyInfo::firstPageAddress);
 	}
 	
@@ -105,14 +108,14 @@ struct GmOsPageAllocatorBuddy {
 	}
 	
 	/// Unlink a page from the free list. Unsetting bitmap's bit is not included here.
-	static inline void unlinkPage(GmOsPageBuddy* page) noexcept {
+	static inline void unlinkPage(pageType page) noexcept {
 		*(page -> freePage.prev) = page -> freePage.next;
 		if(page -> freePage.next != buddyInfo::nullPageAddress) 
 			page -> freePage.next -> freePage.prev = page -> freePage.prev;
 	}
 	
 	/// Add a page to certain order of free list.
-	static inline void linkPage(GmOsPageBuddy** listHead, GmOsPageBuddy* page) noexcept {
+	static inline void linkPage(pageType* listHead, pageType page) noexcept {
 		page -> freePage.prev = listHead;
 		page -> freePage.next = *listHead;
 		if(*listHead != buddyInfo::nullPageAddress)
@@ -145,7 +148,7 @@ struct GmOsPageAllocatorBuddy {
 	/// The list of free pages in different orders. Please notice the page of higher 
 	/// address always come earlier in the free page list. Should all be initially
 	/// null page pointer.
-	GmOsPageBuddy* freePageList[buddyInfo::maxPageOrder];
+	pageType freePageList[buddyInfo::maxPageOrder];
 	
 	/// The bitmap recording the pages status. If a page is inside free list, it will be 
 	/// marked 1. This field MUST be initially 0, and it should be cleared somewhere.
@@ -171,7 +174,7 @@ struct GmOsPageAllocatorBuddy {
 				// Check whether it is a page to shrink.
 				if(bitmapHas(index, offset)) {
 					// Remove the page from free list and unmask the bitmap.
-					GmOsPageBuddy* page = pageFrameFrom(pfn);
+					pageType page = pageFrameFrom(pfn);
 					unlinkPage(page);
 					bitmapClear(index, offset);
 					
@@ -187,8 +190,8 @@ struct GmOsPageAllocatorBuddy {
 	}
 	
 	/// Return a high page back to the allocator.
-	void freeHighPage(GmOsPageBuddy* page, orderType order) noexcept {
-		if(page == (GmOsPageBuddy*)buddyInfo::nullPageAddress) return;
+	void freeHighPage(pageType page, orderType order) noexcept {
+		if(page == (pageType)buddyInfo::nullPageAddress) return;
 		pfnType pfnCurrent = pageFrameFor(page);
 		
 		// Perform iterative merging of buddy page algorithm. Please notice that the 
@@ -203,7 +206,7 @@ struct GmOsPageAllocatorBuddy {
 			// and make a new buddy index.
 			if(bitmapHas(buddyIndex, buddyOffset)) {
 				// Remove the buddy page from its free list.
-				GmOsPageBuddy* buddyPage = pageFrameFrom(pfnBuddy);
+				pageType buddyPage = pageFrameFrom(pfnBuddy);
 				unlinkPage(buddyPage);
 				bitmapClear(buddyIndex, buddyOffset);
 				
@@ -221,7 +224,7 @@ struct GmOsPageAllocatorBuddy {
 		
 		// Add specified page to corresponding free list.
 		else {
-			GmOsPageBuddy* currentPage = pageFrameFrom(pfnCurrent);
+			pageType currentPage = pageFrameFrom(pfnCurrent);
 			
 			// Retrieve the current page frame number.
 			pfnType currentIndex, currentOffset;
@@ -234,13 +237,13 @@ struct GmOsPageAllocatorBuddy {
 	}
 	
 	/// Allocate a high page from the allocator.
-	GmOsPageBuddy* allocateHighPage(orderType order) noexcept {
+	pageType allocateHighPage(orderType order) noexcept {
 		if(order >= buddyInfo::maxPageOrder) 	// Cannot allocate.
-			return (GmOsPageBuddy*)buddyInfo::nullPageAddress;
+			return (pageType)buddyInfo::nullPageAddress;
 		
 		// Remove an available page from the free list.
-		if(freePageList[order] != (GmOsPageBuddy*)buddyInfo::nullPageAddress) {
-			GmOsPageBuddy* resultPage = freePageList[order];
+		if(freePageList[order] != (pageType)buddyInfo::nullPageAddress) {
+			pageType resultPage = freePageList[order];
 			
 			// Unset bitmap bit.
 			pfnType pfnResult = pageFrameFor(resultPage);
@@ -257,12 +260,12 @@ struct GmOsPageAllocatorBuddy {
 			// Increase up to the available order.
 			orderType availableOrder = order + 1;
 			for(; availableOrder < buddyInfo::maxPageOrder && 
-				freePageList[order] == (GmOsPageBuddy*)buddyInfo::nullPageAddress; 
+				freePageList[order] == (pageType)buddyInfo::nullPageAddress; 
 				++ availableOrder);
 			
 			if(availableOrder < buddyInfo::maxPageOrder) {
 				// Luckily we've found one, remove the page from free list first.
-				GmOsPageBuddy* victimPage = freePageList[availableOrder];
+				pageType victimPage = freePageList[availableOrder];
 				pfnType pfnVictim = pageFrameFor(victimPage);
 				pfnType victimIndex, victimOffset;
 				indexFrom(pfnVictim, availableOrder, victimIndex, victimOffset);
@@ -277,7 +280,7 @@ struct GmOsPageAllocatorBuddy {
 					pfnType pfnSplit = pfnVictim + (1 << availableOrder);
 					pfnType splitIndex, splitOffset;
 					indexFrom(pfnSplit, availableOrder, splitIndex, splitOffset);
-					GmOsPageBuddy* splitPage = pageFrameFrom(pfnSplit);
+					pageType splitPage = pageFrameFrom(pfnSplit);
 					
 					// Add the splitted page to the free list.
 					bitmapSet(splitIndex, splitOffset);
@@ -294,7 +297,7 @@ struct GmOsPageAllocatorBuddy {
 				
 				// Check whether more page can be allocated.
 				if(buddyInfo::totalPageFrame < lpbrk + newHpbrk) 
-					return (GmOsPageBuddy*)buddyInfo::nullPageAddress;
+					return (pageType)buddyInfo::nullPageAddress;
 				
 				// Add some free page between the old hpbrk and the new page frame.
 				pfnType pfnSplit = pfnNew;
@@ -306,7 +309,7 @@ struct GmOsPageAllocatorBuddy {
 					// Calculate the page to split.
 					pfnType splitIndex, splitOffset;
 					indexFrom(pfnSplit, orderSplit - 1, splitIndex, splitOffset);
-					GmOsPageBuddy* splitPage = pageFrameFrom(pfnSplit);
+					pageType splitPage = pageFrameFrom(pfnSplit);
 					
 					// Add the splitted page to the free list.
 					bitmapSet(splitIndex, splitOffset);
@@ -321,9 +324,9 @@ struct GmOsPageAllocatorBuddy {
 	}
 	
 	/// Retrieve the current low break point top page.
-	GmOsPageBuddy* lowPageBreak() const noexcept {
-		if(lpbrk == 0) return (GmOsPageBuddy*)buddyInfo::nullPageAddress;
-		else return reinterpret_cast<GmOsPageBuddy*>(((lpbrk - 1) 
+	pageType lowPageBreak() const noexcept {
+		if(lpbrk == 0) return (pageType)buddyInfo::nullPageAddress;
+		else return reinterpret_cast<pageType>(((lpbrk - 1) 
 			<< buddyInfo::pageSizeShift) + buddyInfo::firstPageAddress);
 	}
 	
@@ -346,7 +349,7 @@ struct GmOsPageAllocatorBuddy {
 	/// Initialize the buddy info structure.
 	GmOsPageAllocatorBuddy() noexcept: lpbrk(0), hpbrk(0) {
 		for(orderType order = 0; order < buddyInfo::maxPageOrder; ++ order)
-			freePageList[order] = (GmOsPageBuddy*)buddyInfo::nullPageAddress;
+			freePageList[order] = (pageType)buddyInfo::nullPageAddress;
 		buddyInfo::memzero(bitmap, buddyInfo::bitmapTotalSize);
 	}
 };
