@@ -221,23 +221,26 @@ struct GmOsFineAllocatorDlMalloc {
 		pageAllocator(pageAllocator), 
 		topChunk((chunkType)dlInfo::nullChunkAddress) {
 		
+		// Prepare temporary null nodes for initialization.
+		GmOsChunkNodeSmall nullSmallNode;
+		nullSmallNode.previous = (GmOsChunkNodeSmall*)dlInfo::nullChunkAddress;
+		nullSmallNode.next = (GmOsChunkNodeSmall*)dlInfo::nullChunkAddress;
+		
+		GmOsChunkNodeLarge nullLargeNode;
+		nullLargeNode.GmOsChunkNodeSmall::previous = (GmOsChunkNodeSmall*)dlInfo::nullChunkAddress;
+		nullLargeNode.GmOsChunkNodeSmall::next = (GmOsChunkNodeSmall*)dlInfo::nullChunkAddress;
+		nullLargeNode.previousSize = (GmOsChunkNodeLarge*)dlInfo::nullChunkAddress;
+		nullLargeNode.nextSize = (GmOsChunkNodeLarge*)dlInfo::nullChunkAddress;
+		
 		// Make the fast bin a stack.
-		for(orderType i = 0; i < dlInfo::fastbinMaxOrder; ++ i)
-			fast[i].previous = fast[i].next = (GmOsChunkNodeSmall*)dlInfo::nullChunkAddress;
+		dlInfo::memzptr(fast, nullSmallNode, dlInfo::fastbinMaxOrder);
 		
 		// Make both of them a circular link list (queue).
-		for(orderType i = dlInfo::fastbinMaxOrder; i < dlInfo::smallbinMaxOrder; ++ i)
-			small[i - dlInfo::fastbinMaxOrder].previous = small[i - dlInfo::fastbinMaxOrder].next 
-				= (GmOsChunkNodeSmall*)dlInfo::nullChunkAddress;
-		for(orderType i = dlInfo::smallbinMaxOrder; i < dlInfo::pageSizeShift; ++ i)
-			large[i - dlInfo::smallbinMaxOrder].previous 
-				= large[i - dlInfo::smallbinMaxOrder].next 
-				= large[i - dlInfo::smallbinMaxOrder].previousSize
-				= large[i - dlInfo::smallbinMaxOrder].nextSize
-				= (GmOsChunkNodeLarge*)dlInfo::nullChunkAddress;
+		dlInfo::memzptr(small, nullSmallNode, dlInfo::smallbinMaxOrder - dlInfo::fastbinMaxOrder);
+		dlInfo::memzptr(large, nullLargeNode, dlInfo::pageSizeShift - dlInfo::smallbinMaxOrder);
 				
 		// Make the unsorted bin a stack.
-		unsorted.previous = unsorted.next = (GmOsChunkNodeSmall*)dlInfo::nullChunkAddress;
+		dlInfo::memzptr(&unsorted, nullSmallNode, 1);
 	}
 	
 	/// Allocate top chunk on request.

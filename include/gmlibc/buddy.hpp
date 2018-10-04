@@ -53,7 +53,7 @@
  *
  *     // Helper for setting a continguous void points to zero, however it is in struct form.
  *     template<typename pointerType>
- *     static void memzptr(pointerType* memory, pointerType zero, size_t numPointers) noexcept;
+ *     static void memzptr(pointerType* memory, const pointerType& zero, size_t numPointers) noexcept;
  *
  *     // Should the allocator perform a high break point shrinking immediately if a 
  *     // high page on top is deallocated. This process might be time consuming and is 
