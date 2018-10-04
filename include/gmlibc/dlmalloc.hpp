@@ -653,8 +653,10 @@ struct GmOsFineAllocatorDlMalloc {
 					if(coalsced -> size() >= size) {
 						if(selectedChunk == (chunkType)dlInfo::nullChunkAddress) 
 							selectedChunk = coalsced;
-						else if(selectedChunk -> size() > coalsced -> size())
+						else if(selectedChunk -> size() > coalsced -> size()) {
+							arrangeChunk(selectedChunk);
 							selectedChunk = coalsced;
+						}
 					}
 					
 					// Insert the coalsced chunk into a proper list, and forward to next chunk.
