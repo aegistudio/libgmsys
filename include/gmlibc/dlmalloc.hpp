@@ -402,7 +402,7 @@ struct GmOsFineAllocatorDlMalloc {
 			
 			// We can safely make it a small or large chunk, or even more.
 			if(availableSize >= GmOsFineChunkDlMalloc::physicalSize(1 << dlInfo::fastbinMaxOrder))
-				remainedSize = remainedSize - (sizeof(chunkSizeType) << 1);
+				remainedSize = availableSize - GmOsFineChunkDlMalloc::payloadOffset;
 			
 			// We will have to search for a safe size that we can make it a chunk.
 			else {
