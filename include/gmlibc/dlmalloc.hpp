@@ -96,13 +96,15 @@ struct GmOsFineAllocatorDlMalloc {
 			}
 			else {
 				// Elevate the peer node of current node.
-				((GmOsChunkNodeLarge*)GmOsChunkNodeSmall::next) -> previousSize = previousSize;
-				((GmOsChunkNodeLarge*)GmOsChunkNodeSmall::next) -> nextSize = nextSize;
+				GmOsChunkNodeLarge* nextNode = ((GmOsChunkNodeLarge*)GmOsChunkNodeSmall::next);
+				nextNode -> previousSize = previousSize;
+				nextNode -> nextSize = nextSize;
+				if(previousSize != (GmOsChunkNodeLarge*)dlInfo::nullChunkAddress) previousSize -> nextSize = nextNode;
+				if(nextSize != (GmOsChunkNodeLarge*)dlInfo::nullChunkAddress) nextSize -> previousSize = nextNode;
 			}
 			
 			// Unlink the size node.
 			previousSize = nextSize = (GmOsChunkNodeLarge*)dlInfo::nullChunkAddress;
-			
 			
 			// Perform normal unlinking just like the small nodes.
 			GmOsChunkNodeSmall::unlinkChunk();
@@ -450,12 +452,13 @@ struct GmOsFineAllocatorDlMalloc {
 		
 		// Search for the very node whose previous is in use.
 		chunkType result = chunk -> previousPhysicalChunk();
+		safelyUnlinkChunk(result);
 		while(!result -> previousInUse()) {
-			// Remove the chunk from its link context.
-			safelyUnlinkChunk(result);
+			// Unlink the previous chunk.
+			chunkType newResult = result -> previousPhysicalChunk();
+			safelyUnlinkChunk(newResult);
 			
 			// Update the corresponding sizes.
-			chunkType newResult = result -> previousPhysicalChunk();
 			chunkSizeType newResultSize = result -> previousSize + result -> physicalSize();
 			newResult -> updateSize(newResultSize);
 			chunk -> previousSize = newResultSize;
@@ -463,9 +466,6 @@ struct GmOsFineAllocatorDlMalloc {
 			// Continue to search forward.
 			result = newResult;
 		}
-		
-		// Don't forget to unlink the result.
-		safelyUnlinkChunk(result);
 		
 		// Return the final result.
 		return result;
@@ -532,7 +532,7 @@ struct GmOsFineAllocatorDlMalloc {
 		else size = ((size + 0x03) | 0x03) ^ 0x03;
 		
 		// Eliminate impossible allocation.
-		if(size >= ((dlInfo::totalPageFrame) << dlInfo::pageSizeShift)) return nullptr;
+		if(size >= ((dlInfo::totalPageFrame()) << dlInfo::pageSizeShift)) return nullptr;
 		
 		// Judge whether the allocation level is page level.
 		allocateSizeType physicalSize = GmOsFineChunkDlMalloc::physicalSize(size);

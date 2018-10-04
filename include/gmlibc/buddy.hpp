@@ -39,17 +39,21 @@
  *     typedef <addressType> addressType;
  *
  *     // The total count of allocatable page frame count.
- *     static constexpr pfnType totalPageFrame;
+ *     static pfnType totalPageFrame() noexcept;
  *
- *     // The start address of the first page, it might be static and filled at rom 
- *     // loading stage.
- *     static const addressType firstPageAddress;
+ *     // Retrieve the start address of the first page, it might be static and calcualte
+ *     // from other external symbols.
+ *     static addressType firstPageAddress() noexcept;
  *
  *     // The pointer indicating the null pages.
  *     static const addressType nullPageAddress;
  *
  *     // Helper for setting a continguous memory to zero.
  *     static void memzero(char* memory, size_t size) noexcept;
+ *
+ *     // Helper for setting a continguous void points to zero, however it is in struct form.
+ *     template<typename pointerType>
+ *     static void memzptr(pointerType* memory, pointerType zero, size_t numPointers) noexcept;
  *
  *     // Should the allocator perform a high break point shrinking immediately if a 
  *     // high page on top is deallocated. This process might be time consuming and is 
@@ -90,14 +94,14 @@ struct GmOsPageAllocatorBuddy {
 	/// page at the end is 0.
 	static pfnType pageFrameFor(const pageType page) noexcept {
 		pfnType reversePageFrame = (reinterpret_cast<addressType>(page) 
-				- buddyInfo::firstPageAddress) >> buddyInfo::pageSizeShift;
-		return buddyInfo::totalPageFrame - 1 - reversePageFrame;
+				- buddyInfo::firstPageAddress()) >> buddyInfo::pageSizeShift;
+		return buddyInfo::totalPageFrame() - 1 - reversePageFrame;
 	}
 	
 	/// Calculate the page address from a frame.
 	static pageType pageFrameFrom(pfnType pfn) noexcept {
-		return reinterpret_cast<pageType>(((buddyInfo::totalPageFrame 
-				- 1 - pfn) << buddyInfo::pageSizeShift) + buddyInfo::firstPageAddress);
+		return reinterpret_cast<pageType>(((buddyInfo::totalPageFrame() - 1 - pfn) 
+			<< buddyInfo::pageSizeShift) + buddyInfo::firstPageAddress());
 	}
 	
 	/// Calculate offset and index from page frame number.
@@ -296,7 +300,7 @@ struct GmOsPageAllocatorBuddy {
 				pfnType newHpbrk = pfnNew + (1 << order);
 				
 				// Check whether more page can be allocated.
-				if(buddyInfo::totalPageFrame < lpbrk + newHpbrk) 
+				if(buddyInfo::totalPageFrame() < lpbrk + newHpbrk) 
 					return (pageType)buddyInfo::nullPageAddress;
 				
 				// Add some free page between the old hpbrk and the new page frame.
@@ -327,7 +331,7 @@ struct GmOsPageAllocatorBuddy {
 	pageType lowPageBreak() const noexcept {
 		if(lpbrk == 0) return (pageType)buddyInfo::nullPageAddress;
 		else return reinterpret_cast<pageType>(((lpbrk - 1) 
-			<< buddyInfo::pageSizeShift) + buddyInfo::firstPageAddress);
+			<< buddyInfo::pageSizeShift) + buddyInfo::firstPageAddress());
 	}
 	
 	/// Increase the low page break point from the allocator. If the page increment 
@@ -336,7 +340,7 @@ struct GmOsPageAllocatorBuddy {
 	bool allocateLowPage(pfnType pageCount) noexcept {
 		pfnType newLpbrk = lpbrk + pageCount;
 		
-		if(buddyInfo::totalPageFrame < newLpbrk + hpbrk) return false;
+		if(buddyInfo::totalPageFrame() < newLpbrk + hpbrk) return false;
 		lpbrk = newLpbrk; return true;
 	};
 	
@@ -348,8 +352,8 @@ struct GmOsPageAllocatorBuddy {
 	
 	/// Initialize the buddy info structure.
 	GmOsPageAllocatorBuddy() noexcept: lpbrk(0), hpbrk(0) {
-		for(orderType order = 0; order < buddyInfo::maxPageOrder; ++ order)
-			freePageList[order] = (pageType)buddyInfo::nullPageAddress;
+		buddyInfo::memzptr(freePageList, 
+			(pageType)buddyInfo::nullPageAddress, buddyInfo::maxPageOrder);
 		buddyInfo::memzero(bitmap, buddyInfo::bitmapTotalSize);
 	}
 };
