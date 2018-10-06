@@ -41,9 +41,13 @@ bin/gmsys-gbarom: src/romld_gba.cpp
 bin/bios_gba.o: src/bios_gba.c
 	$(MACH_CC) -O3 -c $< -o $@
 
+# The memory management library for gba.
+bin/gbamm.o: src/gbamm.cpp
+	$(MACH_CPP) -c -O3 $< -o $@ -std=c++11 -nostdlib -fno-exceptions
+	
 # The compiled library in GBA flavour.
-bin/gba.a: bin/bios_gba.o
-	$(MACH_AR) -rcs $@ $<
+bin/gba.a: bin/bios_gba.o bin/gbamm.o
+	$(MACH_AR) -rcs $@ $^
 
 clean:
 	rm bin/*
