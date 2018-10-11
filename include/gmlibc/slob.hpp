@@ -160,8 +160,9 @@ struct GmOsFineAllocatorSlob : private slobRuntimeInfo {
 	pageAllocatorType& pageAllocator;
 	GmOsFineChunkSlob *full, *partial, *sfree;
 	
-	GmOsFineAllocatorSlob(pageAllocatorType& pageAllocator): slobRuntimeInfo(),
-		pageAllocator(pageAllocator), full(nullptr), partial(nullptr), sfree(nullptr) {}
+	GmOsFineAllocatorSlob(pageAllocatorType& pageAllocator, const slobRuntimeInfo& rti): 
+		slobRuntimeInfo(rti), pageAllocator(pageAllocator), 
+		full(nullptr), partial(nullptr), sfree(nullptr) {}
 	
 	/// Allocate new object.
 	void* allocate() noexcept {
@@ -209,9 +210,9 @@ struct GmOsFineAllocatorSlob : private slobRuntimeInfo {
 		
 		// Determine which slab frame contains this object.
 		addressType frameSize = (1 << slobInfo::pageSizeShift);
-		addressType frameAddress = reinterpret_cast<addressType>(object)
-				| (frameSize - 1) ^ (frameSize - 1);
 		addressType firstPageAddress = slobInfo::firstPageAddress();
+		addressType frameAddress = (((reinterpret_cast<addressType>(object)
+				- firstPageAddress) | (frameSize - 1)) ^ (frameSize - 1)) + firstPageAddress;
 		while(frameAddress >= firstPageAddress) {
 			if(reinterpret_cast<GmOsFineChunkSlob*>(frameAddress) -> isSlobHeader(*this)) break;
 			frameAddress -= frameSize;
@@ -257,4 +258,45 @@ struct GmOsFineAllocatorSlob : private slobRuntimeInfo {
 		// Notify that one object has been destroyed.
 		slobRuntimeInfo::objectDestroyed();
 	}
+};
+
+/// @brief the runtime info that naively allocate one more page no matter how many objects
+/// has been allocated.
+template<typename slobInfo, typename sizeType>
+struct GmOsSlobRuntimeNormalSized {
+	/// @brief The object size, which must be aligned, otherwise unexpected problem will 
+	/// occur while accessing words.
+	sizeType objectSize;
+	
+	// Forward type definitions.
+	typedef typename slobInfo::orderType orderType;
+	typedef typename slobInfo::addressType addressType;
+	typedef typename slobInfo::objectNumberType objectNumberType;
+	
+	/// Just single page will be accepted, and the page type is always deadbeef.
+	static addressType nextPageType() noexcept { return 0xdeadbeef; }
+	static bool isValidFrameType(addressType frameType) noexcept { return frameType == 0xdeadbeef; }
+	
+	/// The magic word will also always be cafebabe.
+	static addressType magicForType(addressType frameType) noexcept { return 0xcafebabe; }
+	
+	// Perform calculation based on every objects' size.
+	addressType numObjects(addressType slobHeaderSize, addressType frameType) const noexcept {
+		addressType pageSize = (1 << slobInfo::pageSizeShift);
+		return (pageSize - slobHeaderSize) / objectSize;
+	}
+	
+	void* offsetForObject(void* slobPointer, objectNumberType objectNumber) const noexcept {
+		return reinterpret_cast<void*>(reinterpret_cast<addressType>(slobPointer) 
+				+ (objectNumber * objectSize));
+	}
+	
+	objectNumberType offsetFromObject(void* slobPointer, void* objectPointer) const noexcept {
+		return (reinterpret_cast<addressType>(objectPointer) - 
+			reinterpret_cast<addressType>(slobPointer)) / objectSize;
+	}
+	
+	static orderType pageOrderOf(addressType frameType) noexcept { return 0; }
+	static void objectCreated() noexcept {}
+	static void objectDestroyed() noexcept {}
 };

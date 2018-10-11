@@ -10,6 +10,7 @@
 #include "gba/mm.h"
 #include "gmlibc/buddy.hpp"
 #include "gmlibc/dlmalloc.hpp"
+#include "gmlibc/slob.hpp"
 #include <new>
 #define TRUE  1
 #define FALSE 0
@@ -102,6 +103,11 @@ struct __gba_ewram_info {
 		// __gba_memzero(pointer, numPointer * sizeof(pointerType));
 		memzero((char*)pointer, numPointer * sizeof(pointerType));
 	}
+	
+	// Slob allocator part.
+	typedef unsigned short objectNumberType;
+	
+	static constexpr bool deftSlobDeallocate = true;
 };
 
 const unsigned char __gba_ewram_info::bitmapOrderOffset[maxPageOrder] __attribute__((weak)) = {0, 128, 64, 32, 16, 8};
@@ -148,6 +154,7 @@ void __gba_pagefree(__gba_page_t page, __gba_order_t pageOrder) {
 // Perform malloc allocator initialization.
 __gba_bool_t __gba_mallocinit(__gba_malloc_allocator_t* region) {
 	if(fineAllocator != nullptr) return TRUE;
+	if(pageAllocator == nullptr) return FALSE;
 	new ((unsigned char*) region) fineAllocatorType(*pageAllocator);
 	fineAllocator = reinterpret_cast<fineAllocatorType*>(region);
 	return TRUE;
@@ -170,4 +177,32 @@ void __gba_free(__gba_chunk_t chunk) {
 	if(!__gba_mallochasinit()) return;
 	if(chunk == nullptr) return;
 	fineAllocator -> deallocate(chunk);
+}
+
+// Initialize a slob allocator for certain size.
+typedef GmOsSlobRuntimeNormalSized<__gba_ewram_info, __gba_size_t> slobFixedRtiType;
+typedef GmOsFineAllocatorSlob<__gba_ewram_info, pageAllocatorType, slobFixedRtiType> slobFixedAllocatorType;
+static constexpr __gba_size_t objectNumberTypeSize = sizeof(slobFixedAllocatorType::objectNumberType);
+static_assert(sizeof(__gba_slob_allocator_t) >= sizeof(slobFixedAllocatorType), 
+	"The size of slob allocator does not fit in with its underlying object.");
+__gba_bool_t __gba_slobinit(__gba_slob_allocator_t* region, __gba_size_t chunkSize) {
+	if(region == nullptr) return FALSE;
+	if(pageAllocator == nullptr) return FALSE;
+	if(chunkSize < sizeof(objectNumberTypeSize)) return FALSE;
+	chunkSize = (chunkSize | (objectNumberTypeSize - 1)) ^ (objectNumberTypeSize - 1);
+	slobFixedRtiType rti; rti.objectSize = chunkSize;
+	slobFixedAllocatorType* allocator = new ((unsigned char*) region) 
+			slobFixedAllocatorType(*pageAllocator, rti);
+	return TRUE;
+}
+
+__gba_chunk_t __gba_sloballoc(__gba_slob_allocator_t* region) {
+	if(region == nullptr) return nullptr;
+	return reinterpret_cast<slobFixedAllocatorType*>(region) -> allocate();
+}
+
+
+void __gba_slobfree(__gba_slob_allocator_t* region, __gba_chunk_t memory) {
+	if(region == nullptr) return;
+	return reinterpret_cast<slobFixedAllocatorType*>(region) -> deallocate(memory);
 }

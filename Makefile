@@ -33,12 +33,16 @@ gba: bin/gbacrt0.o bin/gba.a bin/gmsys-gbarom
 bin/gbacrt0.o: src/gbacrt0.S
 	$(MACH_AS) $< -o $@
 
+# The AEABI implementaiton for GBA cartridge.
+bin/gbaaeabi.o: src/gbaaeabi.S
+	$(MACH_AS) $< -o $@
+	
 # The special ROM loader for GBA. The BFD library is used.
-bin/gmsys-gbarom: src/romld_gba.cpp
+bin/gmsys-gbarom: src/gbaromld.cpp
 	$(NATIVE_CPP) -O3 $< -o $@ -lbfd -std=c++11
 
 # The object files in GBA cartridges.
-bin/bios_gba.o: src/bios_gba.c
+bin/gbabios.o: src/gbabios.c
 	$(MACH_CC) -O3 -c $< -o $@
 
 # The memory management library for gba.
@@ -48,7 +52,7 @@ bin/gbamm.o: src/gbamm.cpp
 	$(MACH_CPP) -c -mthumb -O3 $< -o $@ -std=c++11 -nostdlib -fno-exceptions
 	
 # The compiled library in GBA flavour.
-bin/gba.a: bin/bios_gba.o bin/gbamm.o
+bin/gba.a: bin/gbabios.o bin/gbamm.o bin/gbaaeabi.o
 	$(MACH_AR) -rcs $@ $^
 
 clean:
