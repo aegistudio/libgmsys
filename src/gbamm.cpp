@@ -179,30 +179,78 @@ void __gba_free(__gba_chunk_t chunk) {
 	fineAllocator -> deallocate(chunk);
 }
 
-// Initialize a slob allocator for certain size.
-typedef GmOsSlobRuntimeNormalSized<__gba_ewram_info, __gba_size_t> slobFixedRtiType;
-typedef GmOsFineAllocatorSlob<__gba_ewram_info, pageAllocatorType, slobFixedRtiType> slobFixedAllocatorType;
-static constexpr __gba_size_t objectNumberTypeSize = sizeof(slobFixedAllocatorType::objectNumberType);
-static_assert(sizeof(__gba_slob_allocator_t) >= sizeof(slobFixedAllocatorType), 
+// Type definitions for slob allocator.
+typedef GmOsSlobPagePolicyNaiveSingle<__gba_ewram_info> pagePolicyType;
+
+static constexpr int slobNormalTypeId = 0;
+typedef GmOsSlobRuntimeNormalSized<__gba_ewram_info, __gba_size_t, pagePolicyType> slobNormalRtiType;
+typedef GmOsFineAllocatorSlob<__gba_ewram_info, pageAllocatorType, slobNormalRtiType> slobNormalAllocatorType;
+
+static constexpr int slobPow2TypeId = 1;
+typedef GmOsSlobRuntimePow2Sized<__gba_ewram_info, __gba_size_t, pagePolicyType> slobPow2RtiType;
+typedef GmOsFineAllocatorSlob<__gba_ewram_info, pageAllocatorType, slobPow2RtiType> slobPow2AllocatorType;
+
+static constexpr __gba_size_t objectNumberTypeSize = sizeof(slobNormalAllocatorType::objectNumberType);
+static_assert(
+	sizeof(__gba_slob_allocator_t::data) >= sizeof(slobNormalAllocatorType)||
+	sizeof(__gba_slob_allocator_t::data) >= sizeof(slobPow2AllocatorType), 
 	"The size of slob allocator does not fit in with its underlying object.");
+
+// Initialize a slob allocator for certain size.
 __gba_bool_t __gba_slobinit(__gba_slob_allocator_t* region, __gba_size_t chunkSize) {
 	if(region == nullptr) return FALSE;
 	if(pageAllocator == nullptr) return FALSE;
 	if(chunkSize < sizeof(objectNumberTypeSize)) return FALSE;
 	chunkSize = (chunkSize | (objectNumberTypeSize - 1)) ^ (objectNumberTypeSize - 1);
-	slobFixedRtiType rti; rti.objectSize = chunkSize;
-	slobFixedAllocatorType* allocator = new ((unsigned char*) region) 
-			slobFixedAllocatorType(*pageAllocator, rti);
+	slobNormalRtiType rti; rti.objectSize = chunkSize;
+	slobNormalAllocatorType* allocator = new ((unsigned char*) region -> data) 
+			slobNormalAllocatorType(*pageAllocator, rti);
+	region -> type = slobNormalTypeId;
 	return TRUE;
 }
 
-__gba_chunk_t __gba_sloballoc(__gba_slob_allocator_t* region) {
-	if(region == nullptr) return nullptr;
-	return reinterpret_cast<slobFixedAllocatorType*>(region) -> allocate();
+// Initialize a slob allocator for certain object shift.
+__gba_bool_t __gba_slobinitpw2(__gba_slob_allocator_t* region, __gba_size_t chunkShift) {
+	if(region == nullptr) return FALSE;
+	if(pageAllocator == nullptr) return FALSE;
+	if((1 << chunkShift) < sizeof(objectNumberTypeSize)) return FALSE;
+	slobPow2RtiType rti; rti.objectShift = chunkShift;
+	slobPow2AllocatorType* allocator = new ((unsigned char*) region -> data) 
+			slobPow2AllocatorType(*pageAllocator, rti);
+	region -> type = slobPow2TypeId;
+	return TRUE;
 }
 
+// Perform slob allocation based on slob type.
+__gba_chunk_t __gba_sloballoc(__gba_slob_allocator_t* region) {
+	if(region == nullptr) return nullptr;
+	switch(region -> type) {
+		case slobNormalTypeId: {
+			return reinterpret_cast<slobNormalAllocatorType*>(region -> data) -> allocate();
+		} break;
+		
+		case slobPow2TypeId: {
+			return reinterpret_cast<slobPow2AllocatorType*>(region -> data) -> allocate();
+		} break;
+		
+		default: {
+			return nullptr;
+		} break;
+	}
+}
 
+// Perform slob deallocation based on slob type.
 void __gba_slobfree(__gba_slob_allocator_t* region, __gba_chunk_t memory) {
 	if(region == nullptr) return;
-	return reinterpret_cast<slobFixedAllocatorType*>(region) -> deallocate(memory);
+	switch(region -> type) {
+		case slobNormalTypeId: {
+			reinterpret_cast<slobNormalAllocatorType*>(region -> data) -> deallocate(memory);
+		} break;
+		
+		case slobPow2TypeId: {
+			reinterpret_cast<slobPow2AllocatorType*>(region -> data) -> deallocate(memory);
+		} break;
+		
+		default: {} break;
+	}
 }

@@ -30,7 +30,7 @@ typedef unsigned char __gba_bool_t;
 /// The eye-candy for defining allocator handles in some region.
 typedef struct { int data[15]; } __gba_page_allocator_t;
 typedef struct { int data[30]; } __gba_malloc_allocator_t;
-typedef struct { int data[12]; } __gba_slob_allocator_t;
+typedef struct { int type; int data[12]; } __gba_slob_allocator_t;
 
 /// Could be used to define symbol's trait.
 #ifndef __gba_mmqualifier
@@ -118,6 +118,14 @@ void __gba_free(__gba_chunk_t chunk) __gba_mmqualifier;
  * true will be returned, otherwise false will be returned.
  */
 __gba_bool_t __gba_slobinit(__gba_slob_allocator_t* allocator, __gba_size_t chunkSize) __gba_mmqualifier;
+
+/**
+ * @brief Initialize a slob allocator, with object size shift.
+ *
+ * Objects allocated will be of the same size. And if the allocation has succeeded,
+ * true will be returned, otherwise false will be returned.
+ */
+__gba_bool_t __gba_slobinitpw2(__gba_slob_allocator_t* allocator, __gba_size_t chunkShift) __gba_mmqualifier;
 
 /**
  * @brief Allocate a slob from the slob allocator.

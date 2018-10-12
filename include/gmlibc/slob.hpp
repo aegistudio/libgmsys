@@ -260,10 +260,28 @@ struct GmOsFineAllocatorSlob : private slobRuntimeInfo {
 	}
 };
 
-/// @brief the runtime info that naively allocate one more page no matter how many objects
-/// has been allocated.
-template<typename slobInfo, typename sizeType>
-struct GmOsSlobRuntimeNormalSized {
+/// @brief The page allocation that naively allocate pages no matter how many objects has 
+/// been or will be allocated.
+template<typename slobInfo>
+struct GmOsSlobPagePolicyNaiveSingle {
+	typedef typename slobInfo::orderType orderType;
+	typedef typename slobInfo::addressType addressType;
+	typedef typename slobInfo::objectNumberType objectNumberType;
+	
+	/// Just single page will be accepted, and the page type is always deadbeef.
+	static addressType nextPageType() noexcept { return 0xdeadbeef; }
+	static bool isValidFrameType(addressType frameType) noexcept { return frameType == 0xdeadbeef; }
+	static orderType pageOrderOf(addressType frameType) noexcept { return 0; }
+	static addressType magicForType(addressType frameType) noexcept { return 0xcafebabe; }
+	
+	/// Do nothing while allocating more object.
+	static void objectCreated() noexcept {}
+	static void objectDestroyed() noexcept {}
+};
+
+/// @brief the runtime info where objects will be of 2 * n byte.
+template<typename slobInfo, typename sizeType, typename pagePolicyType>
+struct GmOsSlobRuntimeNormalSized : public pagePolicyType {
 	/// @brief The object size, which must be aligned, otherwise unexpected problem will 
 	/// occur while accessing words.
 	sizeType objectSize;
@@ -273,16 +291,9 @@ struct GmOsSlobRuntimeNormalSized {
 	typedef typename slobInfo::addressType addressType;
 	typedef typename slobInfo::objectNumberType objectNumberType;
 	
-	/// Just single page will be accepted, and the page type is always deadbeef.
-	static addressType nextPageType() noexcept { return 0xdeadbeef; }
-	static bool isValidFrameType(addressType frameType) noexcept { return frameType == 0xdeadbeef; }
-	
-	/// The magic word will also always be cafebabe.
-	static addressType magicForType(addressType frameType) noexcept { return 0xcafebabe; }
-	
 	// Perform calculation based on every objects' size.
 	addressType numObjects(addressType slobHeaderSize, addressType frameType) const noexcept {
-		addressType pageSize = (1 << slobInfo::pageSizeShift);
+		addressType pageSize = (1 << slobInfo::pageSizeShift) << pagePolicyType::pageOrderOf(frameType);
 		return (pageSize - slobHeaderSize) / objectSize;
 	}
 	
@@ -295,8 +306,33 @@ struct GmOsSlobRuntimeNormalSized {
 		return (reinterpret_cast<addressType>(objectPointer) - 
 			reinterpret_cast<addressType>(slobPointer)) / objectSize;
 	}
+};
+
+/// @brief the runtime info where objects will be of 1 << n byte. Calculation will be faster
+/// as there's no need of dividing.
+template<typename slobInfo, typename objectOrderType, typename pagePolicyType>
+struct GmOsSlobRuntimePow2Sized : public pagePolicyType {
+	/// @brief The object size's shift.
+	objectOrderType objectShift;
 	
-	static orderType pageOrderOf(addressType frameType) noexcept { return 0; }
-	static void objectCreated() noexcept {}
-	static void objectDestroyed() noexcept {}
+	// Forward type definitions.
+	typedef typename slobInfo::orderType orderType;
+	typedef typename slobInfo::addressType addressType;
+	typedef typename slobInfo::objectNumberType objectNumberType;
+	
+	// Perform calculation based on every objects' size.
+	addressType numObjects(addressType slobHeaderSize, addressType frameType) const noexcept {
+		addressType pageSize = (1 << slobInfo::pageSizeShift) << pagePolicyType::pageOrderOf(frameType);
+		return (pageSize - slobHeaderSize) >> objectShift;
+	}
+	
+	void* offsetForObject(void* slobPointer, objectNumberType objectNumber) const noexcept {
+		return reinterpret_cast<void*>(reinterpret_cast<addressType>(slobPointer) 
+				+ (objectNumber << objectShift));
+	}
+	
+	objectNumberType offsetFromObject(void* slobPointer, void* objectPointer) const noexcept {
+		return (reinterpret_cast<addressType>(objectPointer) - 
+			reinterpret_cast<addressType>(slobPointer)) >> objectShift;
+	}
 };
